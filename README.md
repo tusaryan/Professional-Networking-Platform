@@ -1,59 +1,146 @@
-# Professional Networking Platform Backend (Microservices)
+# Professional Networking Platform (Backend)
 
-## Overview
-**(Will update this guide soon for detailed setup)**
-This project is the backend implementation for a Professional Networking Platform, built using a microservices architecture with Spring Boot and Spring Cloud. It demonstrates various patterns common in distributed systems.
+Welcome to the **Professional Networking Platform** backend repository. This project is a scalable, microservices-based application inspired by platforms like LinkedIn. It demonstrates modern distributed system patterns, including service discovery, API gateway routing, event-driven architecture with Kafka, and graph database interactions for managing social connections.
 
-The system consists of the following core microservices:
+## 🚀 System Design
 
-* **`discovery-server`**: Handles service registration and discovery using Spring Cloud Netflix Eureka. Allows services to find each other dynamically.
-* **`api-gateway`**: Single entry point for all client requests. Routes requests to appropriate downstream services, handles authentication (JWT), and potentially rate limiting/cross-cutting concerns. Uses Spring Cloud Gateway.
-* **`user-service`**: Manages user registration, authentication, profiles, and JWT generation/validation.
-* **`connections-service`**: Handles user connection requests, follow/unfollow logic, and maintains the social graph.
-* **`posts-service`**: Manages creation, retrieval, liking, and potentially commenting on posts.
-* **`notification-service`**: Generates and manages user notifications based on events from other services (e.g., new connection requests, post likes). Likely uses Kafka for event consumption.
-* **`uploader-service`**: Handles file uploads (e.g., profile pictures, post attachments) potentially integrating with cloud storage like Cloudinary or Google Cloud Storage.
+The system is designed with a robust microservices architecture, ensuring scalability and fault tolerance.
 
-Communication between services primarily happens via REST APIs (through the gateway or direct Feign calls) and asynchronously via Apache Kafka for event-driven interactions. Each core service typically manages its own database.
+![Architecture](resources/Architecture.png)
 
-## Features
+### Microservices Overview
 
-* User Authentication (Sign up / Login with JWT)
-* User Profiles
-* Connection Management (Sending/Accepting Requests)
-* Post Creation & Retrieval
-* Post Liking
-* Real-time Notifications (Event-driven via Kafka)
-* API Gateway for unified access and security
-* Service Discovery via Eureka
-* File Upload capabilities
+The following diagram illustrates the interaction and design of the microservices.
 
-## Technologies Used
+![Microservices Design](resources/Professional-Networking-Platform_Microservices_Design.png)
 
-* **Languages/Frameworks:** Java (Specify JDK Version, e.g., 21+), Spring Boot, Spring Cloud (Gateway, Netflix Eureka, OpenFeign), Spring Data JPA, Spring Security, Spring Kafka
-* **Database:** PostgreSQL (Typically one schema/database per service for local setup)
-* **Messaging:** Apache Kafka
-* **Build Tool:** Apache Maven
-* **API Documentation:** Swagger/OpenAPI (via Springdoc likely)
-* **Containerization:** Docker, Docker Compose
-* **Orchestration:** Kubernetes (in `/k8s`)
-* **Libraries:** JWT (jjwt), Lombok, etc.
+| Service | Port | Description | DB / Tech |
+| :--- | :--- | :--- | :--- |
+| **`discovery-server`** | `8761` | Service Registry using **Netflix Eureka**. Allows services to find each other dynamically. | N/A |
+| **`api-gateway`** | `8080` | Entry point. Handles **JWT Authentication**, routing, and load balancing. | Spring Cloud Gateway |
+| **`user-service`** | `8081`* | Manages user identity, profiles, and authentication (Signup/Login). | PostgreSQL |
+| **`posts-service`** | `8082`* | Handles post creation, feed retrieval, and interactions (likes/comments). | PostgreSQL, Kafka Producer |
+| **`connections-service`** | `8083`* | Manages social graph (Follow/Connect). Uses Graph algorithms for "First Degree" connections. | **Neo4j** |
+| **`notification-service`** | `8084`* | Real-time notifications system listening to Kafka events. | PostgreSQL, Kafka Consumer |
 
-## Prerequisites
+> *Note: Downstream service ports are managed by Eureka and may vary in non-docker setups, but these are typical defaults or container ports.*
 
-* **Git:** For cloning the repository.
-* **JDK:** Java Development Kit (*Specify required version, e.g., 21 or later*).
-* **Maven:** Apache Maven build tool (or use the included Maven Wrapper `./mvnw`).
-* **Docker & Docker Compose:** Required for running the application using Docker Compose. [Download Docker](https://www.docker.com/products/docker-desktop/).
-* **PostgreSQL Server:** Required for the **Local Setup**. Needs a running instance.
-* **`kubectl`:** Required for interacting with Kubernetes if using the Kubernetes deployment method.
-* **(Optional) Kafka Instance:** For local development without Docker Compose, you might need a locally running Kafka instance. Docker Compose setup usually includes Kafka.
-* **(Optional) PostgreSQL Client:** A tool like `psql` or pgAdmin to manage databases locally.
+## ✨ Key Features
 
-## Getting Started
+-   **🔐 Secure Authentication**: Centralized JWT generation and validation via the API Gateway and User Service.
+-   **🕸️ Social Graph**: Leverages **Neo4j** to efficiently query complex relationships (e.g., "users you might know", "first-degree connections").
+-   **📨 Event-Driven Notifications**: Asynchronous processing of events (e.g., `PostCreated`, `PostLiked`) using **Apache Kafka** to decouple services and ensure high performance.
+-   **🛣️ Dynamic Routing**: Spring Cloud Gateway + Eureka ensures requests are always routed to healthy service instances.
+-   **📊 Observability Ready**: Integrated with **Spring Boot Actuator** and ready for **ELK Stack** (Elasticsearch, Logstash, Kibana) for centralized logging and monitoring.
 
-### 1. Clone the Repository
-**(Use your repo URL if different)**
+## 🛠️ Tech Stack & Database Design
+
+![Database Design](resources/Professional-Networking-Platform_Database_Design.png)
+
+-   **Language**: Java 21
+-   **Framework**: Spring Boot 3.3.4, Spring Cloud 2023.0.3
+-   **Databases**: 
+    -   **PostgreSQL**: For structured relational data (Users, Posts).
+    -   **Neo4j**: For graph-based relationship interactions.
+-   **Messaging**: Apache Kafka
+-   **Build Tool**: Maven
+-   **Containerization**: Docker, Docker Compose
+-   **Orchestration**: Kubernetes (Manifests available in `/k8s`)
+
+## ⚙️ Getting Started
+
+### Prerequisites
+
+-   **Java 21** SDK
+-   **Docker** & **Docker Compose**
+-   **Git**
+
+### ⚡ Quick Start (Docker Compose)
+
+The easiest way to run the entire system is using Docker Compose.
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/ARYANKUMAR1/Professional-Networking-Platform.git
+    cd Professional-Networking-Platform
+    ```
+
+2.  **Build the artifacts (Optional if images are local):**
+    ```bash
+    # You might need to skip tests if infrastructure isn't running
+    ./mvnw clean package -DskipTests
+    ```
+    *Note: The `docker-compose.yml` pulls pre-built images from Docker Hub by default. If you want to use local code, you'll need to build the images using `jib:dockerBuild` or standard Dockerfile builds.*
+
+3.  **Start the infrastructure:**
+    ```bash
+    docker-compose up -d
+    ```
+    This command starts:
+    -   Zookeeper & Kafka
+    -   PostgreSQL databases (User, Posts, Notification)
+    -   Neo4j Database
+    -   Discovery Server
+    -   All Microservices
+
+4.  **Verify Status:**
+    -   **Eureka Dashboard**: [http://localhost:8761](http://localhost:8761) - Check if all services are registered (UP status).
+    -   **Kafka UI** (if configured): [http://localhost:8090](http://localhost:8090)
+
+### 💻 Manual Setup (Local Development)
+
+If you prefer running services individually in your IDE:
+
+1.  **Start Infrastructure**:
+    You still need the databases and Kafka.
+    ```bash
+    docker-compose -f docker-compose.base.yml up -d
+    ```
+    *(Ensure `docker-compose.base.yml` contains only the DBs and Kafka, or remove service entries from the main `docker-compose.yml` before running)*.
+
+2.  **Run Services/Configs**:
+    -   Start **Discovery Server** first.
+    -   Start **API Gateway**.
+    -   Start **User**, **Posts**, **Connections**, **Notification** services.
+    -   *Ensure your `application.properties/yml` in each service points to `localhost` for DBs if running outside Docker network.*
+
+## 📚 API Documentation
+
+### API Design
+![API Design](resources/Professional-Networking-Platform_APIs.png)
+
+Each service comes with SpringDoc (Swagger/OpenAPI). You can access the API documentation for individual services (via Gateway if configured, or direct port):
+
+-   **User Service**: `http://localhost:8081/swagger-ui.html`
+-   **Posts Service**: `http://localhost:8082/swagger-ui.html`
+-   **Gateway Aggregation**: Access `http://localhost:8080/swagger-ui.html` (if aggregation is configured).
+
+### Sample Endpoints
+
+-   **Auth**: `POST /auth/signup`, `POST /auth/login`
+-   **Posts**: `GET /core/posts`, `POST /core/posts`
+-   **Connections**: `POST /core/connections/request/{userId}`
+
+## 📂 Project Structure
+
 ```bash
-git clone https://github.com/tusaryan/Professional-Networking-Platform.git
-cd Professional-Networking-Platform
+Professional-Networking-Platform/
+├── api-gateway/            # Routing & Security
+├── discovery-server/       # Eureka Registry
+├── user-service/           # User logic
+├── posts-service/          # Feed & Posts logic
+├── connections-service/    # Graph DB & Friends logic
+├── notification-service/   # Kafka Consumer for alerts
+├── uploader-service/       # File uploads
+├── k8s/                    # Kubernetes manifests
+├── docker-compose.yml      # Docker orchestration
+└── README.md               # You are here
+```
+
+## 🤝 Contributing
+
+1.  Fork the repository.
+2.  Create a feature branch (`git checkout -b feature/amazing-feature`).
+3.  Commit your changes (`git commit -m 'Add some amazing feature'`).
+4.  Push to the branch (`git push origin feature/amazing-feature`).
+5.  Open a Pull Request.
